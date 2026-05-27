@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Еженедельный трекер рекрутера</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #191919; color: #e3e2e0; padding: 24px; font-size: 14px; min-height: 100vh;
+  }
+  h1 { font-size: 18px; font-weight: 600; color: #e3e2e0; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #6b6b6b; margin-bottom: 20px; }
+
+  .week-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .week-label { font-size: 14px; font-weight: 600; flex: 1; color: #e3e2e0; }
+  .week-nav button {
+    background: #2f2f2f; border: 1px solid #373737; border-radius: 6px;
+    padding: 5px 12px; cursor: pointer; font-size: 13px; color: #9b9b9b; transition: background 0.15s;
+  }
+  .week-nav button:hover { background: #3a3a3a; color: #e3e2e0; }
+
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+
+  .filter-select {
+    flex: 1; min-width: 200px; padding: 7px 10px;
+    border: 1px solid #373737; border-radius: 7px;
+    background: #2f2f2f; font-size: 13px; color: #e3e2e0;
+    outline: none; cursor: pointer; transition: border 0.15s; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b6b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px;
+  }
+  .filter-select:focus { border-color: #555; }
+
+  .btn-add {
+    display: flex; align-items: center; gap: 6px;
+    background: #e3e2e0; color: #191919; border: none; border-radius: 7px;
+    padding: 7px 14px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .btn-add:hover { background: #fff; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+  .metric-card { background: #2f2f2f; border: 1px solid #373737; border-radius: 8px; padding: 12px 16px; }
+  .metric-label { font-size: 11px; color: #6b6b6b; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .metric-value { font-size: 26px; font-weight: 600; color: #e3e2e0; }
+
+  .table-wrap { background: #2f2f2f; border: 1px solid #373737; border-radius: 10px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { border-bottom: 1px solid #373737; background: #252525; }
+  th { font-size: 11px; font-weight: 600; color: #6b6b6b; padding: 10px 12px; text-align: left; text-transform: uppercase; letter-spacing: 0.04em; }
+  th:not(:first-child):not(:nth-child(2)) { text-align: center; }
+  td { padding: 10px 12px; border-bottom: 1px solid #333; vertical-align: middle; color: #e3e2e0; }
+  td:not(:first-child):not(:nth-child(2)) { text-align: center; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #353535; }
+
+  .grade-badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; display: inline-block; white-space: nowrap; }
+  .g-junior { background: #1e3a14; color: #7db96a; }
+  .g-middle { background: #142840; color: #5b9fd4; }
+  .g-senior { background: #231e4a; color: #8b84d7; }
+  .g-lead   { background: #3a1a0e; color: #d4845a; }
+
+  .vac-name { font-size: 13px; font-weight: 500; color: #e3e2e0; }
+  .vac-plan { font-size: 11px; color: #6b6b6b; margin-top: 2px; }
+
+  .counter-cell { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .cnt-btn {
+    width: 22px; height: 22px; border-radius: 50%; border: 1px solid #444;
+    background: none; cursor: pointer; font-size: 14px; color: #6b6b6b;
+    display: flex; align-items: center; justify-content: center; transition: background 0.1s;
+  }
+  .cnt-btn:hover { background: #404040; color: #e3e2e0; }
+  .cnt-val { font-size: 14px; font-weight: 600; min-width: 20px; text-align: center; color: #e3e2e0; }
+
+  .del-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: none; border: 1px solid #4a2828; border-radius: 6px;
+    padding: 4px 10px; cursor: pointer; font-size: 12px; color: #c07070;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .del-btn:hover { background: #3a1f1f; border-color: #6b3535; color: #e08080; }
+
+  .status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
+  .s-ok   { background: #1e3a14; color: #7db96a; }
+  .s-warn { background: #3a2e00; color: #c9a227; }
+  .s-bad  { background: #3a1414; color: #d46b6b; }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .d-ok   { background: #7db96a; }
+  .d-warn { background: #c9a227; }
+  .d-bad  { background: #d46b6b; }
+
+  .empty-row td { text-align: center !important; color: #555; font-size: 13px; padding: 28px; }
+
+  .legend { display: flex; gap: 16px; margin-top: 14px; font-size: 12px; color: #6b6b6b; }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #2f2f2f; border: 1px solid #373737; border-radius: 12px; padding: 24px;
+    width: 100%; max-width: 420px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); margin: 16px;
+  }
+  .modal h2 { font-size: 16px; font-weight: 600; color: #e3e2e0; margin-bottom: 18px; }
+  .form-row { margin-bottom: 14px; }
+  .form-row label { display: block; font-size: 11px; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 5px; font-weight: 600; }
+  .form-row input, .form-row select {
+    width: 100%; padding: 8px 10px; border: 1px solid #444; border-radius: 7px;
+    font-size: 13px; color: #e3e2e0; outline: none; background: #252525; transition: border 0.15s;
+  }
+  .form-row input:focus, .form-row select:focus { border-color: #666; }
+  .form-row input::placeholder { color: #555; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+  .btn-cancel {
+    background: none; border: 1px solid #444; border-radius: 7px;
+    padding: 8px 16px; cursor: pointer; font-size: 13px; color: #9b9b9b;
+  }
+  .btn-cancel:hover { background: #3a3a3a; color: #e3e2e0; }
+  .btn-save {
+    background: #e3e2e0; color: #191919; border: none; border-radius: 7px;
+    padding: 8px 20px; cursor: pointer; font-size: 13px; font-weight: 600;
+  }
+  .btn-save:hover { background: #fff; }
+
+  @media (max-width: 640px) {
+    body { padding: 12px; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<h1>Еженедельный трекер рекрутера</h1>
+<p class="subtitle">Активность по вакансиям · план/факт</p>
+
+<div class="week-nav">
+  <button onclick="changeWeek(-1)">← Назад</button>
+  <span class="week-label" id="week-label"></span>
+  <button onclick="changeWeek(1)">Вперёд →</button>
+</div>
+
+<div class="toolbar">
+  <select class="filter-select" id="filter-select" onchange="render()">
+    <option value="">Все вакансии</option>
+  </select>
+  <button class="btn-add" onclick="openModal()">+ Добавить вакансию</button>
+</div>
+
+<div class="summary-grid">
+  <div class="metric-card">
+    <div class="metric-label">Вакансий</div>
+    <div class="metric-value" id="s-total">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Добавлено</div>
+    <div class="metric-value" id="s-sourced">0</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Скрининги</div>
+    <div class="metric-value" id="s-screens">0</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">На менеджера</div>
+    <div class="metric-value" id="s-submit">0</div>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:190px">Вакансия</th>
+        <th style="width:82px">Грейд</th>
+        <th>Добавлено</th>
+        <th>Скрининги</th>
+        <th>На менеджера</th>
+        <th style="width:100px">Статус</th>
+        <th style="width:90px"></th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+</div>
+
+<div class="legend">
+  <span><span class="dot d-ok"></span>План выполнен</span>
+  <span><span class="dot d-warn"></span>Частично</span>
+  <span><span class="dot d-bad"></span>Нет активности</span>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <h2>Новая вакансия</h2>
+    <div class="form-row">
+      <label>Название вакансии</label>
+      <input type="text" id="f-name" placeholder="Например: Продуктовый менеджер">
+    </div>
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Грейд</label>
+        <select id="f-grade">
+          <option value="15">15 — Junior</option>
+          <option value="16">16 — Junior+</option>
+          <option value="17" selected>17 — Middle</option>
+          <option value="18">18 — Middle</option>
+          <option value="19">19 — Middle+</option>
+          <option value="20">20 — Senior</option>
+          <option value="21">21 — Senior+</option>
+          <option value="22">22 — Lead-</option>
+          <option value="23">23 — Lead</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Добавлено (план)</label>
+        <input type="number" id="f-sm" min="1">
+      </div>
+      <div class="form-row">
+        <label>Скрининги (план)</label>
+        <input type="number" id="f-sc" min="1">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>На менеджера (план)</label>
+      <input type="number" id="f-ss" min="1">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+      <button class="btn-save" onclick="saveVacancy()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const LS_VAC   = 'rt_vacancies';
+const LS_STORE = 'rt_store';
+
+const GRADE_META = {
+  15: { label: 'Junior',  type: 'junior', sm: 12, sc: 6, ss: 4 },
+  16: { label: 'Junior+', type: 'junior', sm: 10, sc: 5, ss: 3 },
+  17: { label: 'Middle',  type: 'middle', sm: 8,  sc: 4, ss: 3 },
+  18: { label: 'Middle',  type: 'middle', sm: 7,  sc: 4, ss: 2 },
+  19: { label: 'Middle+', type: 'middle', sm: 6,  sc: 3, ss: 2 },
+  20: { label: 'Senior',  type: 'senior', sm: 5,  sc: 3, ss: 2 },
+  21: { label: 'Senior+', type: 'senior', sm: 4,  sc: 3, ss: 2 },
+  22: { label: 'Lead-',   type: 'lead',   sm: 3,  sc: 2, ss: 1 },
+  23: { label: 'Lead',    type: 'lead',   sm: 2,  sc: 1, ss: 1 },
+};
+
+const DEFAULT_VAC = [
+  { name: 'Руководитель группы TMS',     grade: 22, sm: 3,  sc: 2, ss: 1 },
+  { name: 'Руководитель направления',    grade: 23, sm: 2,  sc: 1, ss: 1 },
+  { name: 'Ст. менеджер проектов (опт)', grade: 20, sm: 5,  sc: 3, ss: 2 },
+  { name: 'Ст. менеджер проектов (эфф)', grade: 20, sm: 5,  sc: 3, ss: 2 },
+  { name: 'Мл. продуктовый дизайнер',   grade: 16, sm: 10, sc: 5, ss: 3 },
+  { name: 'Менеджер по маркетингу',      grade: 17, sm: 8,  sc: 4, ss: 3 },
+  { name: 'Дизайнер offline (1)',         grade: 15, sm: 12, sc: 6, ss: 4 },
+  { name: 'Мл. менеджер по продукту',   grade: 16, sm: 10, sc: 5, ss: 3 },
+  { name: 'Ст. продуктовый аналитик',   grade: 19, sm: 6,  sc: 3, ss: 2 },
+  { name: 'Дизайнер offline (2)',         grade: 15, sm: 12, sc: 6, ss: 4 },
+  { name: 'Менеджер опер. проектам',     grade: 18, sm: 7,  sc: 4, ss: 2 },
+];
+
+function loadVacancies() {
+  try { const r = localStorage.getItem(LS_VAC); return r ? JSON.parse(r) : JSON.parse(JSON.stringify(DEFAULT_VAC)); }
+  catch { return JSON.parse(JSON.stringify(DEFAULT_VAC)); }
+}
+function saveVacancies() { localStorage.setItem(LS_VAC, JSON.stringify(vacancies)); }
+function loadStore() {
+  try { const r = localStorage.getItem(LS_STORE); return r ? JSON.parse(r) : {}; }
+  catch { return {}; }
+}
+function saveStore() { localStorage.setItem(LS_STORE, JSON.stringify(store)); }
+
+let vacancies = loadVacancies();
+const store   = loadStore();
+let offset    = 0;
+const gradeClass = { junior: 'g-junior', middle: 'g-middle', senior: 'g-senior', lead: 'g-lead' };
+
+function weekKey(o) {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay() + 1 + o * 7);
+  return d.toISOString().slice(0, 10);
+}
+function weekLabel(o) {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay() + 1 + o * 7);
+  const e = new Date(d); e.setDate(d.getDate() + 4);
+  const fmt = x => x.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+  const tag = o === 0 ? ' · эта неделя' : o === -1 ? ' · прошлая' : '';
+  return fmt(d) + ' — ' + fmt(e) + tag;
+}
+function getData(key) {
+  if (!store[key]) store[key] = vacancies.map(() => ({ sourced: 0, screens: 0, submit: 0 }));
+  while (store[key].length < vacancies.length) store[key].push({ sourced: 0, screens: 0, submit: 0 });
+  return store[key];
+}
+function change(i, field, delta) {
+  const key = weekKey(offset);
+  getData(key)[i][field] = Math.max(0, getData(key)[i][field] + delta);
+  saveStore(); render();
+}
+function deleteVacancy(i) {
+  if (!confirm('Удалить «' + vacancies[i].name + '»?\nДанные по всем неделям будут удалены.')) return;
+  vacancies.splice(i, 1);
+  Object.keys(store).forEach(k => store[k] && store[k].splice(i, 1));
+  saveVacancies(); saveStore();
+  const sel = document.getElementById('filter-select');
+  if (sel.value === String(i)) sel.value = '';
+  render();
+}
+function getStatus(v, d) {
+  if (!d.sourced && !d.screens && !d.submit) return 'bad';
+  if (d.sourced >= v.sm && d.screens >= v.sc && d.submit >= v.ss) return 'ok';
+  return 'warn';
+}
+function counter(i, field, val) {
+  return `<div class="counter-cell">
+    <button class="cnt-btn" onclick="change(${i},'${field}',-1)">−</button>
+    <span class="cnt-val">${val}</span>
+    <button class="cnt-btn" onclick="change(${i},'${field}',1)">+</button>
+  </div>`;
+}
+function updateFilterOptions() {
+  const sel = document.getElementById('filter-select');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Все вакансии</option>' +
+    vacancies.map((v, i) => `<option value="${i}">${v.name}</option>`).join('');
+  sel.value = cur;
+  if (sel.value !== cur) sel.value = '';
+}
+function render() {
+  const key = weekKey(offset);
+  const data = getData(key);
+  const filterVal = document.getElementById('filter-select').value;
+  document.getElementById('week-label').textContent = weekLabel(offset);
+  updateFilterOptions();
+
+  let ts = 0, tc = 0, tb = 0;
+  data.forEach(d => { ts += d.sourced; tc += d.screens; tb += d.submit; });
+  document.getElementById('s-total').textContent = vacancies.length;
+  document.getElementById('s-sourced').textContent = ts;
+  document.getElementById('s-screens').textContent = tc;
+  document.getElementById('s-submit').textContent = tb;
+
+  const indices = filterVal !== '' ? [+filterVal] : vacancies.map((_, i) => i);
+  const st = {
+    ok:   ['s-ok',   'Выполнен', 'd-ok'],
+    warn: ['s-warn', 'Частично', 'd-warn'],
+    bad:  ['s-bad',  'Нет',      'd-bad'],
+  };
+  if (!indices.length) {
+    document.getElementById('table-body').innerHTML = `<tr class="empty-row"><td colspan="7">Нет вакансий</td></tr>`;
+    return;
+  }
+  document.getElementById('table-body').innerHTML = indices.map(i => {
+    const v = vacancies[i]; const d = data[i];
+    const meta = GRADE_META[v.grade] || { label: 'Г'+v.grade, type: 'middle' };
+    const s = getStatus(v, d); const [cls, lbl, dot] = st[s];
+    return `<tr>
+      <td>
+        <div class="vac-name">${v.name}</div>
+        <div class="vac-plan">Г${v.grade} · план: ${v.sm} / ${v.sc} / ${v.ss}</div>
+      </td>
+      <td><span class="grade-badge ${gradeClass[meta.type]}">${meta.label}</span></td>
+      <td>${counter(i, 'sourced', d.sourced)}</td>
+      <td>${counter(i, 'screens', d.screens)}</td>
+      <td>${counter(i, 'submit', d.submit)}</td>
+      <td><span class="status-pill ${cls}"><span class="dot ${dot}"></span>${lbl}</span></td>
+      <td><button class="del-btn" onclick="deleteVacancy(${i})">✕ Удалить</button></td>
+    </tr>`;
+  }).join('');
+}
+function changeWeek(d) { offset += d; render(); }
+function openModal() {
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-grade').value = '17';
+  const m = GRADE_META[17];
+  document.getElementById('f-sm').value = m.sm;
+  document.getElementById('f-sc').value = m.sc;
+  document.getElementById('f-ss').value = m.ss;
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('f-name').focus(), 50);
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+document.getElementById('f-grade').addEventListener('change', function () {
+  const m = GRADE_META[+this.value];
+  if (m) { document.getElementById('f-sm').value = m.sm; document.getElementById('f-sc').value = m.sc; document.getElementById('f-ss').value = m.ss; }
+});
+function saveVacancy() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { document.getElementById('f-name').focus(); return; }
+  const grade = +document.getElementById('f-grade').value;
+  const sm = +document.getElementById('f-sm').value || GRADE_META[grade].sm;
+  const sc = +document.getElementById('f-sc').value || GRADE_META[grade].sc;
+  const ss = +document.getElementById('f-ss').value || GRADE_META[grade].ss;
+  vacancies.push({ name, grade, sm, sc, ss });
+  saveVacancies(); closeModal(); render();
+}
+render();
+</script>
+</body>
+</html>
