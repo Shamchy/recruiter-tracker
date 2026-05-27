@@ -27,12 +27,9 @@
     flex: 1; min-width: 200px; padding: 7px 10px;
     border: 1px solid #e0ddd8; border-radius: 7px;
     background: #fff; font-size: 13px; color: #1a1a1a;
-    outline: none; cursor: pointer; transition: border 0.15s;
-    appearance: none;
+    outline: none; cursor: pointer; transition: border 0.15s; appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    padding-right: 30px;
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px;
   }
   .filter-select:focus { border-color: #bbb; }
 
@@ -100,7 +97,6 @@
   .legend { display: flex; gap: 16px; margin-top: 14px; font-size: 12px; color: #888; }
   .legend span { display: flex; align-items: center; gap: 5px; }
 
-  /* Modal */
   .modal-overlay {
     display: none; position: fixed; inset: 0;
     background: rgba(0,0,0,0.35); align-items: center; justify-content: center; z-index: 100;
@@ -152,9 +148,7 @@
   <select class="filter-select" id="filter-select" onchange="render()">
     <option value="">Все вакансии</option>
   </select>
-  <button class="btn-add" onclick="openModal()">
-    + Добавить вакансию
-  </button>
+  <button class="btn-add" onclick="openModal()">+ Добавить вакансию</button>
 </div>
 
 <div class="summary-grid">
@@ -199,7 +193,6 @@
   <span><span class="dot d-bad"></span>Нет активности</span>
 </div>
 
-<!-- Add modal -->
 <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
   <div class="modal">
     <h2>Новая вакансия</h2>
@@ -243,6 +236,9 @@
 </div>
 
 <script>
+const LS_VAC   = 'rt_vacancies';
+const LS_STORE = 'rt_store';
+
 const GRADE_META = {
   15: { label: 'Junior',  type: 'junior', sm: 12, sc: 6, ss: 4 },
   16: { label: 'Junior+', type: 'junior', sm: 10, sc: 5, ss: 3 },
@@ -255,7 +251,7 @@ const GRADE_META = {
   23: { label: 'Lead',    type: 'lead',   sm: 2,  sc: 1, ss: 1 },
 };
 
-let vacancies = [
+const DEFAULT_VAC = [
   { name: 'Руководитель группы TMS',     grade: 22, sm: 3,  sc: 2, ss: 1 },
   { name: 'Руководитель направления',    grade: 23, sm: 2,  sc: 1, ss: 1 },
   { name: 'Ст. менеджер проектов (опт)', grade: 20, sm: 5,  sc: 3, ss: 2 },
@@ -269,9 +265,35 @@ let vacancies = [
   { name: 'Менеджер опер. проектам',     grade: 18, sm: 7,  sc: 4, ss: 2 },
 ];
 
+// --- Persistence helpers ---
+function loadVacancies() {
+  try {
+    const raw = localStorage.getItem(LS_VAC);
+    return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_VAC));
+  } catch { return JSON.parse(JSON.stringify(DEFAULT_VAC)); }
+}
+
+function saveVacancies() {
+  localStorage.setItem(LS_VAC, JSON.stringify(vacancies));
+}
+
+function loadStore() {
+  try {
+    const raw = localStorage.getItem(LS_STORE);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveStore() {
+  localStorage.setItem(LS_STORE, JSON.stringify(store));
+}
+
+// --- State ---
+let vacancies = loadVacancies();
+const store   = loadStore();
+let offset    = 0;
+
 const gradeClass = { junior: 'g-junior', middle: 'g-middle', senior: 'g-senior', lead: 'g-lead' };
-let offset = 0;
-const store = {};
 
 function weekKey(o) {
   const d = new Date();
@@ -295,7 +317,9 @@ function getData(key) {
 }
 
 function change(i, field, delta) {
-  getData(weekKey(offset))[i][field] = Math.max(0, getData(weekKey(offset))[i][field] + delta);
+  const key = weekKey(offset);
+  getData(key)[i][field] = Math.max(0, getData(key)[i][field] + delta);
+  saveStore();
   render();
 }
 
@@ -303,9 +327,10 @@ function deleteVacancy(i) {
   if (!confirm('Удалить «' + vacancies[i].name + '»?\nДанные по всем неделям будут удалены.')) return;
   vacancies.splice(i, 1);
   Object.keys(store).forEach(k => store[k] && store[k].splice(i, 1));
+  saveVacancies();
+  saveStore();
   const sel = document.getElementById('filter-select');
   if (sel.value === String(i)) sel.value = '';
-  updateFilterOptions();
   render();
 }
 
@@ -325,9 +350,9 @@ function counter(i, field, val) {
 
 function updateFilterOptions() {
   const sel = document.getElementById('filter-select');
-  const current = sel.value;
+  const cur = sel.value;
   sel.innerHTML = '<option value="">Все вакансии</option>' +
-    vacancies.map((v, i) => `<option value="${i}"${current == i ? ' selected' : ''}>${v.name}</option>`).join('');
+    vacancies.map((v, i) => `<option value="${i}"${cur == i ? ' selected' : ''}>${v.name}</option>`).join('');
 }
 
 function render() {
@@ -345,9 +370,7 @@ function render() {
   document.getElementById('s-screens').textContent = tc;
   document.getElementById('s-submit').textContent = tb;
 
-  const indices = filterVal !== ''
-    ? [+filterVal]
-    : vacancies.map((_, i) => i);
+  const indices = filterVal !== '' ? [+filterVal] : vacancies.map((_, i) => i);
 
   const st = {
     ok:   ['s-ok',   'Выполнен', 'd-ok'],
@@ -420,6 +443,7 @@ function saveVacancy() {
   const sc = +document.getElementById('f-sc').value || GRADE_META[grade].sc;
   const ss = +document.getElementById('f-ss').value || GRADE_META[grade].ss;
   vacancies.push({ name, grade, sm, sc, ss });
+  saveVacancies();
   closeModal();
   render();
 }
