@@ -3,407 +3,763 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Еженедельный трекер рекрутера</title>
+<title>Трекер вакансий</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #191919; color: #e3e2e0; padding: 24px; font-size: 14px; min-height: 100vh;
-  }
-  h1 { font-size: 18px; font-weight: 600; color: #e3e2e0; margin-bottom: 4px; }
-  .subtitle { font-size: 13px; color: #6b6b6b; margin-bottom: 20px; }
-
-  .week-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-  .week-label { font-size: 14px; font-weight: 600; flex: 1; color: #e3e2e0; }
-  .week-nav button {
-    background: #2f2f2f; border: 1px solid #373737; border-radius: 6px;
-    padding: 5px 12px; cursor: pointer; font-size: 13px; color: #9b9b9b; transition: background 0.15s;
-  }
-  .week-nav button:hover { background: #3a3a3a; color: #e3e2e0; }
-
-  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-
-  .filter-select {
-    flex: 1; min-width: 200px; padding: 7px 10px;
-    border: 1px solid #373737; border-radius: 7px;
-    background: #2f2f2f; font-size: 13px; color: #e3e2e0;
-    outline: none; cursor: pointer; transition: border 0.15s; appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b6b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px;
-  }
-  .filter-select:focus { border-color: #555; }
-
-  .btn-add {
-    display: flex; align-items: center; gap: 6px;
-    background: #e3e2e0; color: #191919; border: none; border-radius: 7px;
-    padding: 7px 14px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap;
-    transition: background 0.15s;
-  }
-  .btn-add:hover { background: #fff; }
-
-  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
-  .metric-card { background: #2f2f2f; border: 1px solid #373737; border-radius: 8px; padding: 12px 16px; }
-  .metric-label { font-size: 11px; color: #6b6b6b; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
-  .metric-value { font-size: 26px; font-weight: 600; color: #e3e2e0; }
-
-  .table-wrap { background: #2f2f2f; border: 1px solid #373737; border-radius: 10px; overflow: hidden; }
-  table { width: 100%; border-collapse: collapse; }
-  thead tr { border-bottom: 1px solid #373737; background: #252525; }
-  th { font-size: 11px; font-weight: 600; color: #6b6b6b; padding: 10px 12px; text-align: left; text-transform: uppercase; letter-spacing: 0.04em; }
-  th:not(:first-child):not(:nth-child(2)) { text-align: center; }
-  td { padding: 10px 12px; border-bottom: 1px solid #333; vertical-align: middle; color: #e3e2e0; }
-  td:not(:first-child):not(:nth-child(2)) { text-align: center; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #353535; }
-
-  .grade-badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; display: inline-block; white-space: nowrap; }
-  .g-junior { background: #1e3a14; color: #7db96a; }
-  .g-middle { background: #142840; color: #5b9fd4; }
-  .g-senior { background: #231e4a; color: #8b84d7; }
-  .g-lead   { background: #3a1a0e; color: #d4845a; }
-
-  .vac-name { font-size: 13px; font-weight: 500; color: #e3e2e0; }
-  .vac-plan { font-size: 11px; color: #6b6b6b; margin-top: 2px; }
-
-  .counter-cell { display: flex; align-items: center; justify-content: center; gap: 6px; }
-  .cnt-btn {
-    width: 22px; height: 22px; border-radius: 50%; border: 1px solid #444;
-    background: none; cursor: pointer; font-size: 14px; color: #6b6b6b;
-    display: flex; align-items: center; justify-content: center; transition: background 0.1s;
-  }
-  .cnt-btn:hover { background: #404040; color: #e3e2e0; }
-  .cnt-val { font-size: 14px; font-weight: 600; min-width: 20px; text-align: center; color: #e3e2e0; }
-
-  .del-btn {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: none; border: 1px solid #4a2828; border-radius: 6px;
-    padding: 4px 10px; cursor: pointer; font-size: 12px; color: #c07070;
-    transition: all 0.15s; white-space: nowrap;
-  }
-  .del-btn:hover { background: #3a1f1f; border-color: #6b3535; color: #e08080; }
-
-  .status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
-  .s-ok   { background: #1e3a14; color: #7db96a; }
-  .s-warn { background: #3a2e00; color: #c9a227; }
-  .s-bad  { background: #3a1414; color: #d46b6b; }
-
-  .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-  .d-ok   { background: #7db96a; }
-  .d-warn { background: #c9a227; }
-  .d-bad  { background: #d46b6b; }
-
-  .empty-row td { text-align: center !important; color: #555; font-size: 13px; padding: 28px; }
-
-  .legend { display: flex; gap: 16px; margin-top: 14px; font-size: 12px; color: #6b6b6b; }
-  .legend span { display: flex; align-items: center; gap: 5px; }
-
-  .modal-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: #2f2f2f; border: 1px solid #373737; border-radius: 12px; padding: 24px;
-    width: 100%; max-width: 420px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); margin: 16px;
-  }
-  .modal h2 { font-size: 16px; font-weight: 600; color: #e3e2e0; margin-bottom: 18px; }
-  .form-row { margin-bottom: 14px; }
-  .form-row label { display: block; font-size: 11px; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 5px; font-weight: 600; }
-  .form-row input, .form-row select {
-    width: 100%; padding: 8px 10px; border: 1px solid #444; border-radius: 7px;
-    font-size: 13px; color: #e3e2e0; outline: none; background: #252525; transition: border 0.15s;
-  }
-  .form-row input:focus, .form-row select:focus { border-color: #666; }
-  .form-row input::placeholder { color: #555; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-  .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
-  .btn-cancel {
-    background: none; border: 1px solid #444; border-radius: 7px;
-    padding: 8px 16px; cursor: pointer; font-size: 13px; color: #9b9b9b;
-  }
-  .btn-cancel:hover { background: #3a3a3a; color: #e3e2e0; }
-  .btn-save {
-    background: #e3e2e0; color: #191919; border: none; border-radius: 7px;
-    padding: 8px 20px; cursor: pointer; font-size: 13px; font-weight: 600;
-  }
-  .btn-save:hover { background: #fff; }
-
-  @media (max-width: 640px) {
-    body { padding: 12px; }
-    .summary-grid { grid-template-columns: repeat(2, 1fr); }
-  }
+:root{
+  --surface-0:#FAF9F5; --surface-1:#F1EFE8; --surface-2:#ffffff;
+  --text-primary:#1f1e1b; --text-secondary:#5F5E5A; --text-muted:#8a8983;
+  --border:#E3E1D9; --border-strong:#c9c7bf; --border-stronger:#8a8983;
+  --bg-accent:#E6F1FB; --text-accent:#185FA5;
+  --bg-success:#EAF3DE; --text-success:#3B6D11;
+  --bg-good:#DFF0F8;    --text-good:#1A6E8E;
+  --bg-warning:#FAEEDA; --text-warning:#854F0B;
+  --bg-risk:#FDEBD4;    --text-risk:#9B4A00;
+  --bg-danger:#FCEBEB;  --text-danger:#A32D2D;
+  --bg-idle:#EFEFED;    --text-idle:#5F5E5A;
+  --radius:8px;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--surface-0); color:var(--text-primary);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:15px; line-height:1.5;}
+#page{max-width:900px; margin:0 auto; padding:24px 16px 60px;}
+h1{font-size:21px; font-weight:600; margin:0;}
+button{background:transparent; border:1px solid var(--border-strong); border-radius:var(--radius);
+  padding:7px 14px; font-size:14px; font-family:inherit; color:var(--text-primary); cursor:pointer;}
+button:hover{background:var(--surface-1);}
+button:active{transform:scale(0.98);}
+input,select,textarea{border:1px solid var(--border-strong); border-radius:var(--radius); padding:6px 10px;
+  font-size:14px; font-family:inherit; background:#fff; color:var(--text-primary); height:36px;}
+textarea{height:auto; font-family:ui-monospace,Consolas,monospace; font-size:12px;}
+input:focus,select:focus,textarea:focus,button:focus-visible{
+  outline:none; box-shadow:0 0 0 2px var(--bg-accent), 0 0 0 3px var(--text-accent);}
+a{color:var(--text-primary);}
+table{border-collapse:collapse; width:100%;}
+.card{background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:16px 20px;}
+.chip{font-size:12px; padding:4px 10px; border-radius:12px; cursor:pointer;
+  border:1px solid var(--border); background:var(--surface-2);}
+.day-row td{background:var(--surface-0);}
 </style>
 </head>
 <body>
-
-<h1>Еженедельный трекер рекрутера</h1>
-<p class="subtitle">Активность по вакансиям · план/факт</p>
-
-<div class="week-nav">
-  <button onclick="changeWeek(-1)">← Назад</button>
-  <span class="week-label" id="week-label"></span>
-  <button onclick="changeWeek(1)">Вперёд →</button>
-</div>
-
-<div class="toolbar">
-  <select class="filter-select" id="filter-select" onchange="render()">
-    <option value="">Все вакансии</option>
-  </select>
-  <button class="btn-add" onclick="openModal()">+ Добавить вакансию</button>
-</div>
-
-<div class="summary-grid">
-  <div class="metric-card">
-    <div class="metric-label">Вакансий</div>
-    <div class="metric-value" id="s-total">—</div>
+<div id="page">
+<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:18px;">
+  <div style="flex:1;">
+    <h1>Трекер вакансий</h1>
+    <div id="subtitle" style="font-size:13px; color:var(--text-muted); margin-top:2px;"></div>
   </div>
-  <div class="metric-card">
-    <div class="metric-label">Добавлено</div>
-    <div class="metric-value" id="s-sourced">0</div>
-  </div>
-  <div class="metric-card">
-    <div class="metric-label">Скрининги</div>
-    <div class="metric-value" id="s-screens">0</div>
-  </div>
-  <div class="metric-card">
-    <div class="metric-label">На менеджера</div>
-    <div class="metric-value" id="s-submit">0</div>
-  </div>
+  <span id="sync-chip" class="chip" title="Нажми, чтобы обновить из облака"></span>
+  <button id="btn-cloud" title="Настройки облака">Облако</button>
+  <button id="btn-export" title="Скачать данные в JSON">Экспорт</button>
+  <button id="btn-import" title="Загрузить данные из JSON">Импорт</button>
+  <input type="file" id="file-import" accept=".json" style="display:none;">
 </div>
-
-<div class="table-wrap">
-  <table>
-    <thead>
-      <tr>
-        <th style="width:190px">Вакансия</th>
-        <th style="width:82px">Грейд</th>
-        <th>Добавлено</th>
-        <th>Скрининги</th>
-        <th>На менеджера</th>
-        <th style="width:100px">Статус</th>
-        <th style="width:90px"></th>
-      </tr>
-    </thead>
-    <tbody id="table-body"></tbody>
-  </table>
-</div>
-
-<div class="legend">
-  <span><span class="dot d-ok"></span>План выполнен</span>
-  <span><span class="dot d-warn"></span>Частично</span>
-  <span><span class="dot d-bad"></span>Нет активности</span>
-</div>
-
-<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
-  <div class="modal">
-    <h2>Новая вакансия</h2>
-    <div class="form-row">
-      <label>Название вакансии</label>
-      <input type="text" id="f-name" placeholder="Например: Продуктовый менеджер">
-    </div>
-    <div class="form-grid">
-      <div class="form-row">
-        <label>Грейд</label>
-        <select id="f-grade">
-          <option value="15">15 — Junior</option>
-          <option value="16">16 — Junior+</option>
-          <option value="17" selected>17 — Middle</option>
-          <option value="18">18 — Middle</option>
-          <option value="19">19 — Middle+</option>
-          <option value="20">20 — Senior</option>
-          <option value="21">21 — Senior+</option>
-          <option value="22">22 — Lead-</option>
-          <option value="23">23 — Lead</option>
-        </select>
-      </div>
-      <div class="form-row">
-        <label>Добавлено (план)</label>
-        <input type="number" id="f-sm" min="1">
-      </div>
-      <div class="form-row">
-        <label>Скрининги (план)</label>
-        <input type="number" id="f-sc" min="1">
-      </div>
-    </div>
-    <div class="form-row">
-      <label>На менеджера (план)</label>
-      <input type="number" id="f-ss" min="1">
-    </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal()">Отмена</button>
-      <button class="btn-save" onclick="saveVacancy()">Добавить</button>
-    </div>
-  </div>
+<div id="app"></div>
 </div>
 
 <script>
-const LS_VAC   = 'rt_vacancies';
-const LS_STORE = 'rt_store';
-
-const GRADE_META = {
-  15: { label: 'Junior',  type: 'junior', sm: 12, sc: 6, ss: 4 },
-  16: { label: 'Junior+', type: 'junior', sm: 10, sc: 5, ss: 3 },
-  17: { label: 'Middle',  type: 'middle', sm: 8,  sc: 4, ss: 3 },
-  18: { label: 'Middle',  type: 'middle', sm: 7,  sc: 4, ss: 2 },
-  19: { label: 'Middle+', type: 'middle', sm: 6,  sc: 3, ss: 2 },
-  20: { label: 'Senior',  type: 'senior', sm: 5,  sc: 3, ss: 2 },
-  21: { label: 'Senior+', type: 'senior', sm: 4,  sc: 3, ss: 2 },
-  22: { label: 'Lead-',   type: 'lead',   sm: 3,  sc: 2, ss: 1 },
-  23: { label: 'Lead',    type: 'lead',   sm: 2,  sc: 1, ss: 1 },
+"use strict";
+const KEY = 'vacancy-tracker-v1';
+const CFG_KEY = 'vacancy-tracker-cfg';
+const R = document.getElementById('app');
+const clr = { success:'#639922', good:'#1A7FA8', warning:'#EF9F27', risk:'#D4700A', danger:'#E24B4A', idle:'#888884', none:'#B4B2A9' };
+const lbl = { success:'в норме', good:'небольшое отставание', warning:'отставание', risk:'сильное отставание', danger:'критично', idle:'нет активности', none:'нет данных' };
+const grades = ['Junior','Middle','Middle+','Senior','Lead'];
+const slaOf = g => (g==='Junior'||g==='Middle') ? 45 : 65;
+const CAT = {
+  'Сорсинг резюме':    { conv:30, short:'Сорсинг' },
+  'HR скрининг':       { conv:50, short:'HR скр.' },
+  'Представлен заказчику':{ conv:60, short:'Предст.', client:true },
+  'Скрининг':          { conv:50, short:'Скрининг' },
+  'Интервью':          { conv:40, short:'Интервью' },
+  'Тестирование':      { conv:60, short:'Тест' },
+  'Финальное интервью':{ conv:50, short:'Финал' }
 };
+const defStages = () => [
+  {t:'Сорсинг резюме',conv:30,tech:false},{t:'HR скрининг',conv:50,tech:false},
+  {t:'Представлен заказчику',conv:60,tech:false},{t:'Интервью',conv:40,tech:true},
+  {t:'Финальное интервью',conv:50,tech:false}];
+const today = new Date();
+const todayISO = today.toISOString().slice(0,10);
+const ruDay = ['вс','пн','вт','ср','чт','пт','сб'];
 
-const DEFAULT_VAC = [
-  { name: 'Руководитель группы TMS',     grade: 22, sm: 3,  sc: 2, ss: 1 },
-  { name: 'Руководитель направления',    grade: 23, sm: 2,  sc: 1, ss: 1 },
-  { name: 'Ст. менеджер проектов (опт)', grade: 20, sm: 5,  sc: 3, ss: 2 },
-  { name: 'Ст. менеджер проектов (эфф)', grade: 20, sm: 5,  sc: 3, ss: 2 },
-  { name: 'Мл. продуктовый дизайнер',   grade: 16, sm: 10, sc: 5, ss: 3 },
-  { name: 'Менеджер по маркетингу',      grade: 17, sm: 8,  sc: 4, ss: 3 },
-  { name: 'Дизайнер offline (1)',         grade: 15, sm: 12, sc: 6, ss: 4 },
-  { name: 'Мл. менеджер по продукту',   grade: 16, sm: 10, sc: 5, ss: 3 },
-  { name: 'Ст. продуктовый аналитик',   grade: 19, sm: 6,  sc: 3, ss: 2 },
-  { name: 'Дизайнер offline (2)',         grade: 15, sm: 12, sc: 6, ss: 4 },
-  { name: 'Менеджер опер. проектам',     grade: 18, sm: 7,  sc: 4, ss: 2 },
-];
+function isoWeek(d){d=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-day);const y0=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil(((d-y0)/86400000+1)/7);}
+const EPOCH=Date.UTC(2024,0,1);
+const wIdx=d=>Math.floor((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-EPOCH)/604800000);
+const W=i=>{const mon=new Date(EPOCH+i*604800000);return 'W'+isoWeek(mon);};
+const curW=wIdx(today);
+function addWorkDays(d,n){d=new Date(d);let a=0;while(a<n){d.setDate(d.getDate()+1);const w=d.getDay();if(w!==0&&w!==6)a++;}return d;}
+function workDaysBetween(a,b){const sign=b>=a?1:-1;const[f,t]=b>=a?[a,b]:[b,a];let d=new Date(f),n=0;while(d<t){d.setDate(d.getDate()+1);const w=d.getDay();if(w!==0&&w!==6)n++;}return n*sign;}
+const dm=d=>String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0');
+const r1=x=>Math.round(x*10)/10;
+const fmt=x=>(Math.abs(x-Math.round(x))<0.05?Math.round(x):r1(x));
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const dot=(m,size)=>'<span style="display:inline-block;width:'+(size||10)+'px;height:'+(size||10)+'px;border-radius:50%;background:'+clr[m]+';flex:none;"></span>';
+const gradeBadge=g=>'<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg-accent);color:var(--text-accent);white-space:nowrap;">'+g+'</span>';
+const techBadge='<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:var(--surface-1);color:var(--text-secondary);border:1px solid var(--border);">тех</span>';
+const warnIcon='<span style="color:var(--text-warning);">&#9888;</span> ';
 
-function loadVacancies() {
-  try { const r = localStorage.getItem(LS_VAC); return r ? JSON.parse(r) : JSON.parse(JSON.stringify(DEFAULT_VAC)); }
-  catch { return JSON.parse(JSON.stringify(DEFAULT_VAC)); }
-}
-function saveVacancies() { localStorage.setItem(LS_VAC, JSON.stringify(vacancies)); }
-function loadStore() {
-  try { const r = localStorage.getItem(LS_STORE); return r ? JSON.parse(r) : {}; }
-  catch { return {}; }
-}
-function saveStore() { localStorage.setItem(LS_STORE, JSON.stringify(store)); }
+let vacs=[];
+let seq=10;
+let view={screen:'list',vacId:null,week:curW,showAdd:false,draft:null,entryDate:null};
+let cfg=null;
+let syncSt={status:'local',ts:null,msg:''};
+let pushT=null;
 
-let vacancies = loadVacancies();
-const store   = loadStore();
-let offset    = 0;
-const gradeClass = { junior: 'g-junior', middle: 'g-middle', senior: 'g-senior', lead: 'g-lead' };
+const SQL='create table if not exists public.tracker_state (\n  id text primary key,\n  data jsonb,\n  updated_at timestamptz default now()\n);\nalter table public.tracker_state enable row level security;\ndrop policy if exists "tracker anon access" on public.tracker_state;\ncreate policy "tracker anon access" on public.tracker_state\n  for all using (true) with check (true);';
 
-function weekKey(o) {
-  const d = new Date();
-  d.setDate(d.getDate() - d.getDay() + 1 + o * 7);
-  return d.toISOString().slice(0, 10);
-}
-function weekLabel(o) {
-  const d = new Date();
-  d.setDate(d.getDate() - d.getDay() + 1 + o * 7);
-  const e = new Date(d); e.setDate(d.getDate() + 4);
-  const fmt = x => x.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-  const tag = o === 0 ? ' · эта неделя' : o === -1 ? ' · прошлая' : '';
-  return fmt(d) + ' — ' + fmt(e) + tag;
-}
-function getData(key) {
-  if (!store[key]) store[key] = vacancies.map(() => ({ sourced: 0, screens: 0, submit: 0 }));
-  while (store[key].length < vacancies.length) store[key].push({ sourced: 0, screens: 0, submit: 0 });
-  return store[key];
-}
-function change(i, field, delta) {
-  const key = weekKey(offset);
-  getData(key)[i][field] = Math.max(0, getData(key)[i][field] + delta);
-  saveStore(); render();
-}
-function deleteVacancy(i) {
-  if (!confirm('Удалить «' + vacancies[i].name + '»?\nДанные по всем неделям будут удалены.')) return;
-  vacancies.splice(i, 1);
-  Object.keys(store).forEach(k => store[k] && store[k].splice(i, 1));
-  saveVacancies(); saveStore();
-  const sel = document.getElementById('filter-select');
-  if (sel.value === String(i)) sel.value = '';
-  render();
-}
-function getStatus(v, d) {
-  if (!d.sourced && !d.screens && !d.submit) return 'bad';
-  if (d.sourced >= v.sm && d.screens >= v.sc && d.submit >= v.ss) return 'ok';
-  return 'warn';
-}
-function counter(i, field, val) {
-  return `<div class="counter-cell">
-    <button class="cnt-btn" onclick="change(${i},'${field}',-1)">−</button>
-    <span class="cnt-val">${val}</span>
-    <button class="cnt-btn" onclick="change(${i},'${field}',1)">+</button>
-  </div>`;
-}
-function updateFilterOptions() {
-  const sel = document.getElementById('filter-select');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">Все вакансии</option>' +
-    vacancies.map((v, i) => `<option value="${i}">${v.name}</option>`).join('');
-  sel.value = cur;
-  if (sel.value !== cur) sel.value = '';
-}
-function render() {
-  const key = weekKey(offset);
-  const data = getData(key);
-  const filterVal = document.getElementById('filter-select').value;
-  document.getElementById('week-label').textContent = weekLabel(offset);
-  updateFilterOptions();
+function loadCfg(){try{cfg=JSON.parse(localStorage.getItem(CFG_KEY));}catch(e){cfg=null;}}
+function saveCfg(){localStorage.setItem(CFG_KEY,JSON.stringify(cfg));}
+const cloudOn=()=>cfg&&cfg.url&&cfg.key;
+const H=()=>({'apikey':cfg.key,'Authorization':'Bearer '+cfg.key});
 
-  let ts = 0, tc = 0, tb = 0;
-  data.forEach(d => { ts += d.sourced; tc += d.screens; tb += d.submit; });
-  document.getElementById('s-total').textContent = vacancies.length;
-  document.getElementById('s-sourced').textContent = ts;
-  document.getElementById('s-screens').textContent = tc;
-  document.getElementById('s-submit').textContent = tb;
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify({vacs,seq}));}catch(e){}}
+function loadLocal(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&Array.isArray(d.vacs)){vacs=d.vacs;seq=d.seq||10;return true;}}catch(e){}return false;}
+function save(){saveLocal();schedulePush();}
 
-  const indices = filterVal !== '' ? [+filterVal] : vacancies.map((_, i) => i);
-  const st = {
-    ok:   ['s-ok',   'Выполнен', 'd-ok'],
-    warn: ['s-warn', 'Частично', 'd-warn'],
-    bad:  ['s-bad',  'Нет',      'd-bad'],
-  };
-  if (!indices.length) {
-    document.getElementById('table-body').innerHTML = `<tr class="empty-row"><td colspan="7">Нет вакансий</td></tr>`;
-    return;
+function updateChip(){
+  const c=document.getElementById('sync-chip');
+  if(!cloudOn()){c.textContent='локально';c.style.color='var(--text-muted)';return;}
+  if(syncSt.status==='ok'){c.textContent='облако: синхр. '+syncSt.ts.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});c.style.color='var(--text-success)';}
+  else if(syncSt.status==='err'){c.textContent='облако: ошибка ('+syncSt.msg+')';c.style.color='var(--text-danger)';}
+  else{c.textContent='облако: подключение…';c.style.color='var(--text-muted)';}
+}
+function schedulePush(){if(!cloudOn())return;clearTimeout(pushT);pushT=setTimeout(pushRemote,700);}
+async function pushRemote(){
+  if(!cloudOn())return;
+  try{
+    const r=await fetch(cfg.url+'/rest/v1/tracker_state',{
+      method:'POST',
+      headers:{...H(),'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify([{id:'main',data:{vacs,seq},updated_at:new Date().toISOString()}])
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    syncSt={status:'ok',ts:new Date(),msg:''};
+  }catch(e){syncSt={status:'err',ts:null,msg:e.message};}
+  updateChip();
+}
+async function pullRemote(){
+  if(!cloudOn())return null;
+  const r=await fetch(cfg.url+'/rest/v1/tracker_state?id=eq.main&select=data',{headers:H()});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const rows=await r.json();
+  return rows.length&&rows[0].data&&Array.isArray(rows[0].data.vacs)?rows[0].data:null;
+}
+async function syncOnStart(){
+  if(!cloudOn()){updateChip();return;}
+  try{
+    const remote=await pullRemote();
+    if(remote){
+      if(vacs.length&&JSON.stringify(remote)!==JSON.stringify({vacs,seq})){
+        if(confirm('В облаке уже есть данные. OK — загрузить из облака (локальные заменятся). Отмена — отправить локальные в облако.')){
+          vacs=remote.vacs;seq=remote.seq||10;
+        }else{await pushRemote();}
+      }else{vacs=remote.vacs;seq=remote.seq||10;}
+    }else if(vacs.length){await pushRemote();}
+    syncSt={status:'ok',ts:new Date(),msg:''};
+  }catch(e){syncSt={status:'err',ts:null,msg:e.message};}
+  saveLocal();render();
+}
+
+// ─── Агрегация дней в неделю ──────────────────────────────────────────────
+// Объединяет ежедневные entries и старые weekly checkins для одной недели.
+function weekVals(v, wk) {
+  const legacy = (v.checkins||[]).find(c=>c.w===wk);
+  const daily = (v.entries||[]).filter(e=>wIdx(new Date(e.date))===wk).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!legacy && daily.length===0) return null;
+  const L=v.stages.length;
+  const vals=Array(L).fill(0), appr=Array(L).fill(0);
+  if(legacy){for(let i=0;i<L;i++){vals[i]+=legacy.vals[i]||0;appr[i]+=(legacy.appr||[])[i]||0;}}
+  daily.forEach(e=>{for(let i=0;i<L;i++){vals[i]+=e.vals[i]||0;appr[i]+=(e.appr||[])[i]||0;}});
+  return{vals,appr,daily,legacy};
+}
+
+// ─── Модель ───────────────────────────────────────────────────────────────
+function meta(v){
+  const openD=new Date(v.opened),openW=wIdx(openD);
+  const deadline=addWorkDays(openD,slaOf(v.grade));
+  const daysLeft=workDaysBetween(today,deadline);
+  const aw=Math.ceil(slaOf(v.grade)/5)-1;
+  return{openD,openW,deadline,daysLeft,aw};
+}
+function totals(v){
+  const aw=meta(v).aw, L=v.stages.length;
+  const need=[]; need[L-1]=v.finals||2;
+  for(let i=L-2;i>=0;i--) need[i]=need[i+1]/(v.stages[i].conv/100);
+  const offers=(v.finals||2)*(v.stages[L-1].conv/100);
+  // weeklyGoals переопределяют авторасчёт: если задано — используем, иначе need/aw
+  const goals=v.weeklyGoals||[];
+  const base=need.map((n,i)=>(goals[i]!=null&&goals[i]>0)?goals[i]:n/aw);
+  return{need,aw,base,offers};
+}
+function shortName(v,i){
+  const s=v.stages[i],base=CAT[s.t]?CAT[s.t].short:s.t;
+  return v.stages.filter(x=>x.t===s.t).length>1?base+' '+v.stages.slice(0,i+1).filter(x=>x.t===s.t).length:base;
+}
+const isClient=s=>CAT[s.t]&&CAT[s.t].client;
+
+function statusAtWeek(v, wk){
+  const m=meta(v), t=totals(v);
+  const elapsed=Math.min(wk-m.openW+1,t.aw);
+  if(elapsed<=0) return{mode:'none',ratio:1,worst:''};
+  const L=v.stages.length;
+  const cum=Array(L).fill(0), apr=Array(L).fill(0);
+  let hasAny=false;
+  for(let w=m.openW;w<=wk;w++){
+    const wv=weekVals(v,w);
+    if(wv){hasAny=true;for(let i=0;i<L;i++){cum[i]+=wv.vals[i]||0;apr[i]+=wv.appr[i]||0;}}
   }
-  document.getElementById('table-body').innerHTML = indices.map(i => {
-    const v = vacancies[i]; const d = data[i];
-    const meta = GRADE_META[v.grade] || { label: 'Г'+v.grade, type: 'middle' };
-    const s = getStatus(v, d); const [cls, lbl, dot] = st[s];
-    return `<tr>
-      <td>
-        <div class="vac-name">${v.name}</div>
-        <div class="vac-plan">Г${v.grade} · план: ${v.sm} / ${v.sc} / ${v.ss}</div>
-      </td>
-      <td><span class="grade-badge ${gradeClass[meta.type]}">${meta.label}</span></td>
-      <td>${counter(i, 'sourced', d.sourced)}</td>
-      <td>${counter(i, 'screens', d.screens)}</td>
-      <td>${counter(i, 'submit', d.submit)}</td>
-      <td><span class="status-pill ${cls}"><span class="dot ${dot}"></span>${lbl}</span></td>
-      <td><button class="del-btn" onclick="deleteVacancy(${i})">✕ Удалить</button></td>
-    </tr>`;
+  if(!hasAny&&elapsed<=1) return{mode:'none',ratio:1,worst:''};
+  const plan=t.base.map(b=>b*elapsed);
+  // Нет ни одной записи, хотя время уже прошло — отдельный статус
+  const totalCum=cum.reduce((a,b)=>a+b,0);
+  if(totalCum===0) return{mode:'idle',ratio:0,worst:'',cum,apr,plan,t,elapsed};
+  let worst=['',1e9];
+  v.stages.forEach((s,i)=>{
+    const r=plan[i]>=1?cum[i]/plan[i]:Math.max(1,cum[i]);
+    if(r<worst[1]) worst=[shortName(v,i),r];
+  });
+  const mode=worst[1]>=0.9?'success':worst[1]>=0.7?'good':worst[1]>=0.5?'warning':worst[1]>=0.25?'risk':'danger';
+  return{mode,ratio:worst[1],worst:worst[0],cum,apr,plan,t,elapsed};
+}
+const slaTxt=m=>m.daysLeft>0?m.daysLeft+' р.д. до SLA ('+dm(m.deadline)+')':'<span style="color:var(--text-danger);">SLA истёк '+dm(m.deadline)+'</span>';
+const gv=id=>document.getElementById(id).value;
+
+// ─── Таблица этапов ───────────────────────────────────────────────────────
+const stageHead=withNeed=>'<tr>'+
+  '<th style="text-align:left;font-size:11px;font-weight:600;color:var(--text-muted);padding-bottom:4px;">Этап</th>'+
+  '<th style="font-size:11px;font-weight:600;color:var(--text-muted);">тех</th>'+
+  '<th style="text-align:right;font-size:11px;font-weight:600;color:var(--text-muted);">конв. %</th>'+
+  (withNeed?
+    '<th style="text-align:right;font-size:11px;font-weight:600;color:var(--text-muted);">нужно всего</th>'+
+    '<th style="text-align:right;font-size:11px;font-weight:600;color:var(--text-muted);" title="Ручной план/нед — переопределяет расчёт из конверсий. Оставь пустым для автоматического.">план/нед ✎</th>':'')+
+  '<th></th></tr>';
+
+function stageRows(stages, prefix, withNeed, v){
+  let need=null, autoBase=null;
+  if(withNeed&&v){
+    const L=stages.length, aw=meta(v).aw;
+    need=[]; need[L-1]=v.finals||2;
+    for(let i=L-2;i>=0;i--) need[i]=need[i+1]/(stages[i].conv/100);
+    autoBase=need.map(n=>n/aw); // авторасчёт без учёта ручных overrides
+  }
+  const goals=(v&&v.weeklyGoals)||[];
+  return stages.map((s,i)=>{
+    const last=i===stages.length-1;
+    return '<tr style="border-top:1px solid var(--border);">'+
+      '<td style="padding:6px 4px 6px 0;font-size:13px;">'+(i+1)+'. '+esc(s.t)+(s.tech?' '+techBadge:'')+(withNeed&&last?' <span style="font-size:10px;padding:1px 6px;border-radius:8px;background:var(--bg-accent);color:var(--text-accent);">якорь</span>':'')+'</td>'+
+      '<td style="text-align:center;"><input type="checkbox" id="'+prefix+'-tech-'+i+'"'+(s.tech?' checked':'')+' style="height:auto;" aria-label="технический этап"></td>'+
+      '<td style="text-align:right;"><input type="number" min="5" max="95" step="5" value="'+s.conv+'" id="'+prefix+'-conv-'+i+'" style="width:64px;height:30px;font-size:13px;"></td>'+
+      (withNeed?
+        '<td id="need-cell-'+i+'" style="text-align:right;font-size:13px;font-weight:600;">'+Math.ceil(need[i])+'</td>'+
+        '<td style="text-align:right;"><input type="number" min="0" step="0.5" id="'+prefix+'-goal-'+i+'" value="'+(goals[i]!=null?goals[i]:'')+'" placeholder="'+fmt(autoBase[i])+'" style="width:72px;height:30px;font-size:13px;" title="Ручной план/нед (пусто = авто '+fmt(autoBase[i])+')"></td>':'')+
+      '<td style="text-align:right;"><button data-rm-'+prefix+'="'+i+'" aria-label="Удалить этап" style="padding:2px 9px;font-size:13px;">&times;</button></td></tr>';
   }).join('');
 }
-function changeWeek(d) { offset += d; render(); }
-function openModal() {
-  document.getElementById('f-name').value = '';
-  document.getElementById('f-grade').value = '17';
-  const m = GRADE_META[17];
-  document.getElementById('f-sm').value = m.sm;
-  document.getElementById('f-sc').value = m.sc;
-  document.getElementById('f-ss').value = m.ss;
-  document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(() => document.getElementById('f-name').focus(), 50);
+const addStageSel=prefix=>'<div style="display:flex;gap:8px;margin-top:10px;align-items:center;"><select id="'+prefix+'-newstage">'+Object.keys(CAT).map(k=>'<option>'+k+'</option>').join('')+'</select><button id="'+prefix+'-addstage" style="font-size:13px;">+ Этап</button></div>';
+
+// ─── Ежедневная форма ввода ───────────────────────────────────────────────
+function makeDailyForm(v){
+  const dateISO = view.entryDate||todayISO;
+  const existing = (v.entries||[]).find(e=>e.date===dateISO);
+  // Парсим дату локально (без T00:00:00 браузер может сдвинуть в UTC)
+  const [yr,mo,dy] = dateISO.split('-').map(Number);
+  const d = new Date(yr, mo-1, dy);
+  const dayLabel = ruDay[d.getDay()]+', '+d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+
+  let html =
+    '<div style="margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">'+
+    '<label style="font-size:12px;color:var(--text-secondary);">Дата записи:</label>'+
+    '<input type="date" id="di-date" value="'+dateISO+'" max="'+todayISO+'" min="'+v.opened+'" style="height:32px;font-size:13px;">'+
+    '<span style="font-size:12px;color:var(--text-secondary);">'+dayLabel+'</span>'+
+    (existing?'<span style="font-size:11px;background:var(--bg-success);color:var(--text-success);padding:2px 10px;border-radius:8px;">✓ запись есть</span>':'')+
+    '</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">';
+
+  v.stages.forEach((s,i)=>{
+    const val=existing?(existing.vals[i]||0):0;
+    const aval=existing?((existing.appr||[])[i]||0):0;
+    if(isClient(s)){
+      // Этап с одобрением заказчика — два явно подписанных поля
+      html+='<div style="border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;">'+
+        '<div style="font-size:11px;color:var(--text-secondary);font-weight:600;margin-bottom:6px;">'+shortName(v,i)+'</div>'+
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'+
+        '<span style="font-size:11px;color:var(--text-muted);min-width:78px;">Представлено</span>'+
+        '<input type="number" min="0" value="'+val+'" id="di-v-'+i+'" style="width:58px;height:28px;font-size:13px;"></div>'+
+        '<div style="display:flex;align-items:center;gap:6px;">'+
+        '<span style="font-size:11px;color:var(--text-success);min-width:78px;">Одобрено ✓</span>'+
+        '<input type="number" min="0" value="'+aval+'" id="di-a-'+i+'" style="width:58px;height:28px;font-size:13px;"></div>'+
+        '</div>';
+    } else {
+      html+='<div>'+
+        '<label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:3px;">'+shortName(v,i)+'</label>'+
+        '<input type="number" min="0" value="'+val+'" id="di-v-'+i+'" style="width:66px;height:32px;font-size:13px;"></div>';
+    }
+  });
+
+  html+=
+    '<div style="display:flex;flex-direction:column;gap:6px;justify-content:flex-end;">'+
+    '<button id="di-save" style="height:36px;">'+(existing?'✓ Обновить':'+ Сохранить')+'</button>'+
+    (existing?'<button id="di-del" style="height:32px;font-size:12px;color:var(--text-danger);border-color:var(--border);">Удалить</button>':'')+
+    '</div></div>';
+
+  return html;
 }
-function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
-function handleOverlayClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
-document.getElementById('f-grade').addEventListener('change', function () {
-  const m = GRADE_META[+this.value];
-  if (m) { document.getElementById('f-sm').value = m.sm; document.getElementById('f-sc').value = m.sc; document.getElementById('f-ss').value = m.ss; }
+
+function bindDailyForm(v){
+  const dateInput=document.getElementById('di-date');
+  if(dateInput){
+    dateInput.addEventListener('change',e=>{
+      view.entryDate=e.target.value;
+      const inner=document.getElementById('ci-form-inner');
+      if(inner){inner.innerHTML=makeDailyForm(v);bindDailyForm(v);}
+    });
+  }
+  const saveBtn=document.getElementById('di-save');
+  if(saveBtn){
+    saveBtn.addEventListener('click',()=>{
+      const dateISO=gv('di-date');
+      if(!dateISO)return;
+      const vals=v.stages.map((_,i)=>+(gv('di-v-'+i)||0));
+      const appr=v.stages.map((s,i)=>isClient(s)?(+(gv('di-a-'+i)||0)):0);
+      if(!v.entries) v.entries=[];
+      const idx=v.entries.findIndex(e=>e.date===dateISO);
+      if(idx>=0) v.entries[idx]={date:dateISO,vals,appr};
+      else{v.entries.push({date:dateISO,vals,appr});v.entries.sort((a,b)=>a.date.localeCompare(b.date));}
+      save();
+      view.entryDate=dateISO;
+      render();
+    });
+  }
+  const delBtn=document.getElementById('di-del');
+  if(delBtn){
+    delBtn.addEventListener('click',()=>{
+      const dateISO=gv('di-date');
+      v.entries=(v.entries||[]).filter(e=>e.date!==dateISO);
+      save();
+      view.entryDate=dateISO;
+      render();
+    });
+  }
+}
+
+// ─── Список вакансий ──────────────────────────────────────────────────────
+function renderList(){
+  const open=vacs.filter(v=>!v.closed), closed=vacs.filter(v=>v.closed);
+  const minW=open.length?Math.min(curW,...open.map(v=>meta(v).openW)):curW;
+  let opts='';
+  for(let w=curW;w>=minW;w--) opts+='<option value="'+w+'"'+(view.week===w?' selected':'')+'>'+W(w)+(w===curW?' (текущая)':'')+'</option>';
+
+  let rows=open.map(v=>{
+    const m=meta(v);
+    const st=statusAtWeek(v,view.week),prev=statusAtWeek(v,view.week-1);
+    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 4px;border-top:1px solid var(--border);flex-wrap:wrap;">'+
+      dot(st.mode,12)+
+      '<div style="flex:1;min-width:180px;"><a href="#" data-open="'+v.id+'" style="font-size:14px;font-weight:600;text-decoration:none;">'+esc(v.name)+'</a>'+
+      '<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">открыта '+dm(m.openD)+' ('+W(m.openW)+') · '+slaTxt(m)+' · '+v.stages.length+' этапов · финалов: '+v.finals+'</div></div>'+
+      gradeBadge(v.grade)+
+      '<div style="display:flex;align-items:center;gap:5px;min-width:56px;justify-content:center;" title="'+W(view.week-1)+' → '+W(view.week)+'">'+dot(prev.mode,8)+'<span style="font-size:12px;color:var(--text-muted);">&rarr;</span>'+dot(st.mode,8)+'</div>'+
+      '<span style="font-size:12px;color:'+clr[st.mode]+';min-width:80px;">'+lbl[st.mode]+'</span>'+
+      '<button data-open="'+v.id+'" style="padding:4px 10px;font-size:13px;">Открыть</button>'+
+      '<button data-close="'+v.id+'" style="padding:4px 10px;font-size:13px;" title="Закрыть вакансию">В архив</button></div>';
+  }).join('')||'<p style="font-size:13px;color:var(--text-muted);padding:12px 4px;">Открытых вакансий нет. Добавь первую или <a href="#" id="load-demo">загрузи демо-данные</a>.</p>';
+
+  let closedRows=closed.map(v=>
+    '<div style="display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--border);opacity:0.65;">'+
+    dot('none',10)+'<span style="flex:1;font-size:13px;">'+esc(v.name)+'</span>'+gradeBadge(v.grade)+
+    '<span style="font-size:12px;color:var(--text-muted);">открыта '+dm(new Date(v.opened))+'</span>'+
+    '<button data-reopen="'+v.id+'" style="padding:4px 10px;font-size:13px;">Вернуть</button>'+
+    '<button data-del="'+v.id+'" style="padding:4px 10px;font-size:13px;" title="Удалить навсегда">&times;</button></div>').join('');
+
+  let addForm='';
+  if(view.showAdd){
+    const d=view.draft;
+    addForm='<div style="background:var(--surface-1);border-radius:var(--radius);padding:14px 16px;margin:12px 0;">'+
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:12px;">'+
+      '<div style="flex:2;min-width:150px;"><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Название</label><input id="nv-name" value="'+esc(d.name)+'" placeholder="Data Engineer" style="width:100%;"></div>'+
+      '<div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Грейд</label><select id="nv-grade">'+grades.map(g=>'<option'+(g===d.grade?' selected':'')+'>'+g+'</option>').join('')+'</select></div>'+
+      '<div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Дата открытия</label><input id="nv-date" type="date" value="'+d.date+'"></div>'+
+      '<div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Финальных встреч</label><input id="nv-finals" type="number" min="1" max="10" value="'+d.finals+'" style="width:70px;"></div>'+
+      '<span style="font-size:12px;color:var(--text-muted);padding-bottom:8px;">SLA: '+slaOf(d.grade)+' р.д.</span></div>'+
+      '<div style="font-size:13px;font-weight:600;margin-bottom:4px;">Процесс подбора <span style="font-weight:400;font-size:12px;color:var(--text-muted);">— объёмы посчитаются от числа финальных встреч</span></div>'+
+      '<table>'+stageHead(false)+stageRows(d.stages,'ns')+'</table>'+addStageSel('ns')+
+      '<div style="display:flex;gap:10px;margin-top:14px;"><button id="nv-create">&#10003; Создать вакансию</button><button id="nv-cancel">Отмена</button></div></div>';
+  }
+
+  R.innerHTML=
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;">'+
+    '<h2 style="font-size:17px;font-weight:600;margin:0;flex:1;">Вакансии <span style="font-size:13px;font-weight:400;color:var(--text-muted);">'+open.length+' в работе</span></h2>'+
+    '<label style="font-size:13px;color:var(--text-secondary);">Срез:</label><select id="wk-sel">'+opts+'</select>'+
+    '<button id="add-toggle">+ Вакансия</button></div>'+
+    addForm+
+    '<div class="card" style="padding:4px 16px;">'+rows+'</div>'+
+    '<div style="display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--text-muted);align-items:center;flex-wrap:wrap;">'+
+    '<span style="display:flex;align-items:center;gap:5px;">'+dot('success',8)+' в норме (≥90%)</span>'+
+    '<span style="display:flex;align-items:center;gap:5px;">'+dot('good',8)+' до −30%</span>'+
+    '<span style="display:flex;align-items:center;gap:5px;">'+dot('warning',8)+' до −50%</span>'+
+    '<span style="display:flex;align-items:center;gap:5px;">'+dot('risk',8)+' до −75%</span>'+
+    '<span style="display:flex;align-items:center;gap:5px;">'+dot('danger',8)+' критично</span>'+
+    '<span style="display:flex;align-items:center;gap:5px;">'+dot('idle',8)+' нет активности</span>'+
+    '<span style="display:flex;align-items:center;gap:5px;">'+dot('none',8)+' нет данных</span></div>'+
+    (closed.length?'<div style="margin-top:24px;"><div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Закрытые</div><div class="card" style="padding:4px 16px;">'+closedRows+'</div></div>':'');
+
+  R.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',e=>{
+    e.preventDefault();
+    view={...view,screen:'detail',vacId:+el.dataset.open,entryDate:null};
+    render();
+  }));
+  R.querySelectorAll('[data-close]').forEach(el=>el.addEventListener('click',()=>{vacs.find(v=>v.id===+el.dataset.close).closed=true;save();render();}));
+  R.querySelectorAll('[data-reopen]').forEach(el=>el.addEventListener('click',()=>{vacs.find(v=>v.id===+el.dataset.reopen).closed=false;save();render();}));
+  R.querySelectorAll('[data-del]').forEach(el=>el.addEventListener('click',()=>{if(confirm('Удалить вакансию навсегда?')){vacs=vacs.filter(v=>v.id!==+el.dataset.del);save();render();}}));
+  const demo=document.getElementById('load-demo');
+  if(demo) demo.addEventListener('click',e=>{e.preventDefault();vacs=demoData();seq=10;save();render();});
+  document.getElementById('wk-sel').addEventListener('change',e=>{view.week=+e.target.value;render();});
+  document.getElementById('add-toggle').addEventListener('click',()=>{
+    view.showAdd=!view.showAdd;
+    if(view.showAdd) view.draft={name:'',grade:'Middle',date:todayISO,finals:2,stages:defStages()};
+    render();
+  });
+  if(view.showAdd){
+    const sync2=()=>{const d=view.draft;d.name=gv('nv-name');d.grade=gv('nv-grade');d.date=gv('nv-date');d.finals=Math.max(1,+gv('nv-finals')||2);d.stages.forEach((s,i)=>{s.conv=Math.min(95,Math.max(5,+gv('ns-conv-'+i)||s.conv));s.tech=document.getElementById('ns-tech-'+i).checked;});};
+    document.getElementById('nv-cancel').addEventListener('click',()=>{view.showAdd=false;render();});
+    document.getElementById('nv-grade').addEventListener('change',()=>{sync2();render();});
+    document.getElementById('ns-addstage').addEventListener('click',()=>{sync2();const t=gv('ns-newstage');view.draft.stages.push({t,conv:CAT[t].conv,tech:false});render();});
+    R.querySelectorAll('[data-rm-ns]').forEach(el=>el.addEventListener('click',()=>{sync2();view.draft.stages.splice(+el.getAttribute('data-rm-ns'),1);render();}));
+    document.getElementById('nv-create').addEventListener('click',()=>{
+      sync2();const d=view.draft;
+      if(!d.stages.length)return;
+      vacs.unshift({id:++seq,name:d.name.trim()||'Новая вакансия',grade:d.grade,opened:d.date,finals:d.finals,stages:d.stages,checkins:[],entries:[],weeklyGoals:Array(d.stages.length).fill(null),closed:false});
+      view.showAdd=false;save();render();
+    });
+  }
+}
+
+// ─── Прогресс-бар ─────────────────────────────────────────────────────────
+function bar(label,tech,fact,planCum,total){
+  const fp=Math.min(100,fact/total*100),pp=Math.min(100,planCum/total*100);
+  const ratio=planCum>0?fact/planCum:1;
+  const col=ratio>=0.9?clr.success:ratio>=0.7?clr.good:ratio>=0.5?clr.warning:ratio>=0.25?clr.risk:clr.danger;
+  return '<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">'+
+    '<span style="color:var(--text-secondary);">'+label+(tech?' '+techBadge:'')+'</span>'+
+    '<span><span style="font-weight:600;">'+fmt(fact)+'</span><span style="color:var(--text-muted);"> / план '+fmt(planCum)+' · всего '+Math.ceil(total)+'</span></span></div>'+
+    '<div style="position:relative;height:8px;background:var(--surface-1);border-radius:4px;">'+
+    '<div style="position:absolute;left:0;top:0;height:8px;width:'+fp+'%;background:'+col+';border-radius:4px;"></div>'+
+    '<div style="position:absolute;left:'+pp+'%;top:-2px;height:12px;width:2px;background:var(--border-stronger);"></div></div></div>';
+}
+
+// ─── Диагностика ──────────────────────────────────────────────────────────
+function calcBlock(v){
+  const t=totals(v),m=meta(v),st=statusAtWeek(v,curW);
+  if(st.mode==='none') return '<p style="font-size:13px;color:var(--text-muted);margin:12px 0 0;">Добавь первую запись — появится светофор и план.</p>';
+  if(st.mode==='idle') return '<p style="font-size:13px;color:var(--text-idle);background:var(--bg-idle);border-radius:10px;padding:12px 16px;margin-top:12px;">За прошедшие недели нет ни одной записи. Внеси данные — диагностика обновится.</p>';
+  let title,msg;
+  const pct=Math.round((1-st.ratio)*100);
+  if(st.mode==='success'){title='Темп в норме';msg='Все этапы по плану или с опережением.';}
+  else if(st.mode==='good'){title='Небольшое отставание '+pct+'%';msg='Узкое место: '+st.worst+'. Лёгкое отставание, наверстаешь за 1–2 недели.';}
+  else if(st.mode==='warning'){title='Отставание '+pct+'%';msg='Узкое место: '+st.worst+'. Наверстать реально, норма недели вырастет.';}
+  else if(st.mode==='risk'){title='Сильное отставание '+pct+'%';msg='Узкое место: '+st.worst+' — '+Math.round(st.ratio*100)+'% от плана. Нужно усилить темп или пересмотреть план.';}
+  else{title='Критично';msg='Узкое место: '+st.worst+' — '+Math.round(st.ratio*100)+'% от плана. Без изменений SLA поедет.';}
+  let html='<div style="background:var(--bg-'+st.mode+');border-radius:12px;padding:14px 20px;margin-top:12px;">'+
+    '<div style="font-size:15px;font-weight:600;color:var(--text-'+st.mode+');margin-bottom:2px;">'+title+'</div>'+
+    '<p style="font-size:13px;color:var(--text-'+st.mode+');margin:0;">'+msg+'</p></div><div style="margin-top:16px;">'+
+    v.stages.map((s,i)=>bar(shortName(v,i),s.tech,st.cum[i],st.plan[i],t.need[i])).join('')+'</div>';
+  v.stages.forEach((s,i)=>{
+    if(isClient(s)&&st.cum[i]>=3){
+      const fc=st.apr[i]/st.cum[i]*100;
+      if(fc<s.conv*0.75) html+='<p style="font-size:13px;color:var(--text-warning);margin:4px 0 8px;">'+warnIcon+'Заказчик одобряет '+Math.round(fc)+'% против плановых '+s.conv+'% ('+shortName(v,i)+') — стоит сверить профиль кандидата с требованиями.</p>';
+    }
+  });
+  const wLeft=t.aw-st.elapsed;
+  if(wLeft<=0){
+    const remAll=t.need.reduce((a,n,i)=>a+Math.max(0,n-st.cum[i]),0);
+    if(remAll>1){
+      const shiftW=Math.max(...t.need.map((n,i)=>Math.ceil(Math.max(0,n-st.cum[i])/t.base[i])));
+      html+='<p style="font-size:13px;color:var(--text-danger);margin:8px 0 0;">Активные недели SLA закончились, воронка не добрана. Реалистичный сдвиг: ~'+shiftW+' нед. ('+shiftW*5+' р.д.).</p>';
+    }else html+='<p style="font-size:13px;color:var(--text-success);margin:8px 0 0;">Воронка набрана — фокус на финал и оффер до '+dm(m.deadline)+'.</p>';
+  }else{
+    const need=t.need.map((n,i)=>Math.max(0,n-st.cum[i])/wLeft);
+    const hard=need.some((n,i)=>n>t.base[i]*1.5&&t.base[i]>=0.5);
+    html+='<div style="font-size:14px;font-weight:600;margin:16px 0 6px;">План на '+W(curW+1)+' <span style="font-weight:400;font-size:12px;color:var(--text-muted);">(осталось '+wLeft+' акт. нед. и '+Math.max(0,m.daysLeft)+' р.д.)</span></div>'+
+      '<table><tr><th style="text-align:left;font-size:11px;font-weight:600;color:var(--text-muted);padding-bottom:4px;">Этап</th><th style="text-align:right;font-size:11px;font-weight:600;color:var(--text-muted);">сделать</th><th style="text-align:right;font-size:11px;font-weight:600;color:var(--text-muted);">план/нед</th></tr>'+
+      v.stages.map((s,i)=>'<tr style="border-top:1px solid var(--border);"><td style="padding:5px 0;font-size:13px;color:var(--text-secondary);">'+shortName(v,i)+'</td><td style="text-align:right;font-size:13px;font-weight:600;">'+Math.ceil(need[i])+'</td><td style="text-align:right;font-size:13px;color:var(--text-muted);">'+fmt(t.base[i])+'</td></tr>').join('')+'</table>'+
+      (hard?'<p style="font-size:13px;color:var(--text-warning);margin:10px 0 0;">'+warnIcon+'Норма выросла в 1,5+ раза — добавь каналы, пересмотри требования или согласуй сдвиг SLA.</p>':'');
+  }
+  return html;
+}
+
+// Обновляет ячейки «нужно всего» и плейсхолдеры «план/нед» без полного ре-рендера
+function refreshNeedCells(v){
+  const t2=totals(v);
+  v.stages.forEach((_,j)=>{
+    const nc=document.getElementById('need-cell-'+j);
+    if(nc) nc.textContent=Math.ceil(t2.need[j]);
+    const gi=document.getElementById('ds-goal-'+j);
+    if(gi&&v.weeklyGoals[j]==null){
+      gi.placeholder=fmt(t2.base[j]);
+      gi.title='Ручной план/нед (пусто = авто '+fmt(t2.base[j])+')';
+    }
+  });
+}
+
+// ─── Детальная страница вакансии ──────────────────────────────────────────
+function renderDetail(){
+  const v=vacs.find(x=>x.id===view.vacId);
+  if(!v){view.screen='list';return renderList();}
+  // Обеспечиваем наличие новых полей в старых данных
+  if(!v.entries) v.entries=[];
+  if(!v.weeklyGoals) v.weeklyGoals=Array(v.stages.length).fill(null);
+  while(v.weeklyGoals.length<v.stages.length) v.weeklyGoals.push(null);
+
+  const m=meta(v),st=statusAtWeek(v,curW),t=totals(v);
+
+  // ── Таблица записей по неделям ──
+  const th=s=>'<th style="text-align:right;font-size:11px;font-weight:600;color:var(--text-muted);padding:0 0 4px 6px;white-space:nowrap;">'+s+'</th>';
+  let logRows='';
+  for(let w=m.openW;w<=curW;w++){
+    const wv=weekVals(v,w);
+    const ws=statusAtWeek(v,w);
+    const wLabel=W(w)+(w===curW?' <span style="color:var(--text-muted);font-size:11px;">тек.</span>':'');
+
+    if(wv&&wv.daily.length>0){
+      // Итоговая строка недели (жирная)
+      logRows+='<tr style="border-top:1px solid var(--border);background:var(--surface-1);">'+
+        '<td style="padding:5px 0 5px 0;font-size:13px;color:var(--text-secondary);white-space:nowrap;font-weight:600;">'+wLabel+'</td>'+
+        v.stages.map((s,i)=>'<td style="text-align:right;font-size:13px;padding-left:6px;font-weight:600;">'+(isClient(s)?(wv.vals[i]||0)+'/'+(wv.appr[i]||0):(wv.vals[i]||0))+'</td>').join('')+
+        '<td style="text-align:right;padding-left:8px;">'+dot(ws.mode,9)+'</td></tr>';
+      // Дневные строки
+      wv.daily.forEach(e=>{
+        const [ey,em,ed2]=e.date.split('-').map(Number);
+        const ed=new Date(ey,em-1,ed2);
+        logRows+='<tr class="day-row" style="border-top:1px solid var(--border);">'+
+          '<td style="padding:4px 0 4px 14px;font-size:12px;color:var(--text-secondary);white-space:nowrap;">'+ruDay[ed.getDay()]+' '+dm(ed)+'</td>'+
+          v.stages.map((s,i)=>'<td style="text-align:right;font-size:12px;padding-left:6px;color:var(--text-secondary);">'+(isClient(s)?(e.vals[i]||0)+'/'+((e.appr||[])[i]||0):(e.vals[i]||0))+'</td>').join('')+
+          '<td></td></tr>';
+      });
+    }else{
+      // Нет ежедневных — старый формат или пустая неделя
+      logRows+='<tr style="border-top:1px solid var(--border);">'+
+        '<td style="padding:6px 0;font-size:13px;color:var(--text-secondary);white-space:nowrap;">'+wLabel+'</td>'+
+        (wv?
+          v.stages.map((s,i)=>'<td style="text-align:right;font-size:13px;padding-left:6px;">'+(isClient(s)?(wv.vals[i]||0)+'/'+(wv.appr[i]||0):(wv.vals[i]||0))+'</td>').join('')
+          :'<td colspan="'+v.stages.length+'" style="text-align:right;font-size:12px;color:var(--text-muted);">нет записей</td>')+
+        '<td style="text-align:right;padding-left:8px;">'+dot(ws.mode,9)+'</td></tr>';
+    }
+  }
+  const log='<div style="overflow-x:auto;"><table style="margin-top:12px;"><tr>'+
+    '<th style="text-align:left;font-size:11px;font-weight:600;color:var(--text-muted);padding-bottom:4px;">Неделя / день</th>'+
+    v.stages.map((s,i)=>th(shortName(v,i)+(isClient(s)?' (пр/од)':''))).join('')+th('•')+'</tr>'+logRows+'</table></div>';
+
+  R.innerHTML=
+    '<a href="#" id="back" style="font-size:13px;color:var(--text-secondary);text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-bottom:12px;">&larr; К списку вакансий</a>'+
+    '<div class="card" style="margin-bottom:16px;">'+
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'+dot(st.mode,12)+
+    '<span style="font-size:17px;font-weight:600;flex:1;">'+esc(v.name)+'</span>'+
+    '<select id="d-grade">'+grades.map(g=>'<option'+(g===v.grade?' selected':'')+'>'+g+'</option>').join('')+'</select>'+
+    '<button id="d-close" style="padding:4px 10px;font-size:13px;">'+(v.closed?'Вернуть в работу':'Закрыть вакансию')+'</button></div>'+
+    '<div style="font-size:13px;color:var(--text-muted);margin-top:6px;">Открыта '+dm(m.openD)+' ('+W(m.openW)+') · SLA '+slaOf(v.grade)+' р.д. · дедлайн '+dm(m.deadline)+' · '+slaTxt(m)+' · статус: <span style="color:'+clr[st.mode]+';">'+lbl[st.mode]+'</span></div></div>'+
+
+    '<div class="card" style="margin-bottom:16px;">'+
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">'+
+    '<span style="font-size:14px;font-weight:600;flex:1;">Процесс подбора</span>'+
+    '<label style="font-size:12px;color:var(--text-secondary);">Финальных встреч</label>'+
+    '<input type="number" min="1" max="10" value="'+v.finals+'" id="d-finals" style="width:60px;height:30px;font-size:13px;">'+
+    '<span style="font-size:12px;color:var(--text-muted);">&asymp; '+fmt(t.offers)+' оффера при конв. финала '+v.stages[v.stages.length-1].conv+'%</span></div>'+
+    '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">Математика строится от финальных встреч: последний этап — якорь, объёмы остальных считаются от него вверх по конверсиям.<br>'+
+    '<strong style="font-weight:600;">план/нед ✎</strong> — укажи свой план/нед чтобы переопределить авторасчёт из конверсий.</p>'+
+    '<table>'+stageHead(true)+stageRows(v.stages,'ds',true,v)+'</table>'+addStageSel('ds')+'</div>'+
+
+    '<div class="card" style="margin-bottom:16px;">'+
+    '<div style="font-size:14px;font-weight:600;margin-bottom:10px;">Ежедневные записи</div>'+
+    '<div id="ci-form-inner">'+makeDailyForm(v)+'</div>'+log+'</div>'+
+
+    '<div class="card">'+
+    '<div style="font-size:14px;font-weight:600;">Диагностика <span style="font-weight:400;font-size:12px;color:var(--text-muted);">— засечка = где надо быть к '+W(curW)+'</span></div>'+
+    '<div id="d-calc">'+calcBlock(v)+'</div></div>';
+
+  document.getElementById('back').addEventListener('click',e=>{e.preventDefault();view.screen='list';view.entryDate=null;render();});
+  document.getElementById('d-close').addEventListener('click',()=>{v.closed=!v.closed;view.screen='list';save();render();});
+  document.getElementById('d-grade').addEventListener('change',e=>{v.grade=e.target.value;save();render();});
+  document.getElementById('d-finals').addEventListener('change',e=>{
+    v.finals=Math.min(10,Math.max(1,+e.target.value||2));
+    refreshNeedCells(v);
+    document.getElementById('d-calc').innerHTML=calcBlock(v);
+    save();
+  });
+
+  v.stages.forEach((s,i)=>{
+    document.getElementById('ds-conv-'+i).addEventListener('change',e=>{
+      s.conv=Math.min(95,Math.max(5,+e.target.value||s.conv));
+      refreshNeedCells(v);
+      document.getElementById('d-calc').innerHTML=calcBlock(v);
+      save();
+    });
+    document.getElementById('ds-tech-'+i).addEventListener('change',e=>{s.tech=e.target.checked;save();});
+    const goalInp=document.getElementById('ds-goal-'+i);
+    if(goalInp) goalInp.addEventListener('change',e=>{
+      const val=parseFloat(e.target.value);
+      if(isNaN(val)||val<=0){
+        // Поле очищено — сбрасываем все ручные планы, возврат к авторасчёту
+        v.weeklyGoals=Array(v.stages.length).fill(null);
+        const autoBases=totals(v).base; // пересчитывается без overrides
+        v.stages.forEach((_,j)=>{
+          const inp=document.getElementById('ds-goal-'+j);
+          if(inp){inp.value='';inp.placeholder=fmt(autoBases[j]);}
+        });
+      } else {
+        // Устанавливаем целое ≥ 1, остальные этапы пересчитываем пропорционально через конверсии
+        const rounded=Math.max(1,Math.ceil(val));
+        v.weeklyGoals[i]=rounded;
+        goalInp.value=rounded;
+        // Вниз по воронке (к финалу): следующий этап = текущий × конверсия%
+        let cur=rounded;
+        for(let j=i;j<v.stages.length-1;j++){
+          cur=Math.max(1,Math.ceil(cur*v.stages[j].conv/100));
+          v.weeklyGoals[j+1]=cur;
+          const inp=document.getElementById('ds-goal-'+(j+1));
+          if(inp) inp.value=cur;
+        }
+        // Вверх по воронке (к сорсингу): предыдущий этап = текущий ÷ конверсия%
+        cur=rounded;
+        for(let j=i;j>0;j--){
+          cur=Math.max(1,Math.ceil(cur*100/v.stages[j-1].conv));
+          v.weeklyGoals[j-1]=cur;
+          const inp=document.getElementById('ds-goal-'+(j-1));
+          if(inp) inp.value=cur;
+        }
+      }
+      document.getElementById('d-calc').innerHTML=calcBlock(v);
+      save();
+    });
+  });
+
+  R.querySelectorAll('[data-rm-ds]').forEach(el=>el.addEventListener('click',()=>{
+    const i=+el.getAttribute('data-rm-ds');
+    if(v.stages.length<=1)return;
+    v.stages.splice(i,1);
+    v.weeklyGoals.splice(i,1);
+    v.checkins.forEach(x=>{x.vals.splice(i,1);if(x.appr)x.appr.splice(i,1);});
+    v.entries.forEach(e=>{e.vals.splice(i,1);if(e.appr)e.appr.splice(i,1);});
+    save();render();
+  }));
+
+  document.getElementById('ds-addstage').addEventListener('click',()=>{
+    const t2=gv('ds-newstage');
+    v.stages.push({t:t2,conv:CAT[t2].conv,tech:false});
+    v.weeklyGoals.push(null);
+    v.checkins.forEach(x=>{x.vals.push(0);if(x.appr)x.appr.push(0);});
+    v.entries.forEach(e=>{e.vals.push(0);if(e.appr)e.appr.push(0);});
+    save();render();
+  });
+
+  bindDailyForm(v);
+}
+
+// ─── Демо-данные ──────────────────────────────────────────────────────────
+function daysAgoISO(n){const d=new Date(today);d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);}
+function demoData(){
+  const mk=(opened,arr,stages)=>{
+    const ow=wIdx(new Date(opened));
+    return arr.map((x,i)=>({w:ow+i,vals:x[0],appr:x[1]||stages.map(()=>0)}));
+  };
+  const s1=[{t:'Сорсинг резюме',conv:25,tech:false},{t:'HR скрининг',conv:50,tech:false},{t:'Представлен заказчику',conv:60,tech:false},{t:'Интервью',conv:40,tech:true},{t:'Финальное интервью',conv:50,tech:false}];
+  const s2=[{t:'Сорсинг резюме',conv:35,tech:false},{t:'HR скрининг',conv:50,tech:false},{t:'Представлен заказчику',conv:65,tech:false},{t:'Тестирование',conv:60,tech:true},{t:'Интервью',conv:40,tech:false},{t:'Финальное интервью',conv:50,tech:false}];
+  const s3=[{t:'Сорсинг резюме',conv:40,tech:false},{t:'HR скрининг',conv:50,tech:false},{t:'Представлен заказчику',conv:70,tech:false},{t:'Финальное интервью',conv:50,tech:false}];
+  const o1=daysAgoISO(46),o2=daysAgoISO(25),o3=daysAgoISO(11);
+  return[
+    {id:1,name:'Senior Backend (Go)',grade:'Senior',opened:o1,finals:2,stages:s1,closed:false,
+     entries:[],weeklyGoals:Array(s1.length).fill(null),
+     checkins:mk(o1,[[[8,2,1,0,0],[0,0,1,0,0]],[[7,2,1,1,0]],[[6,2,1,0,0],[0,0,1,0,0]],[[7,1,1,1,0],[0,0,1,0,0]],[[6,2,0,0,1]],[[7,2,1,1,1],[0,0,1,0,0]]],s1)},
+    {id:2,name:'Product Analyst',grade:'Middle',opened:o2,finals:2,stages:s2,closed:false,
+     entries:[],weeklyGoals:Array(s2.length).fill(null),
+     checkins:mk(o2,[[[8,3,1,0,0,0],[0,0,1,0,0,0]],[[5,1,1,1,0,0]],[[4,1,0,0,0,0]]],s2)},
+    {id:3,name:'HR BP',grade:'Middle+',opened:o3,finals:2,stages:s3,closed:false,
+     entries:[],weeklyGoals:Array(s3.length).fill(null),
+     checkins:mk(o3,[[[2,1,0,0]]],s3)}
+  ];
+}
+
+// ─── Настройки облака ─────────────────────────────────────────────────────
+function renderSetup(){
+  const u=cfg&&cfg.url?cfg.url:'',k=cfg&&cfg.key?cfg.key:'';
+  R.innerHTML=
+    '<div class="card" style="max-width:640px;margin:0 auto;">'+
+    '<div style="font-size:16px;font-weight:600;margin-bottom:8px;">Подключение облака (Supabase)</div>'+
+    '<p style="font-size:13px;color:var(--text-secondary);margin:0 0 12px;">Один раз на каждом устройстве. Данные будут синхронизироваться между всеми браузерами, где введены эти ключи.</p>'+
+    '<ol style="font-size:13px;color:var(--text-secondary);padding-left:20px;margin:0 0 12px;line-height:1.8;">'+
+    '<li>Создай бесплатный проект на <a href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a></li>'+
+    '<li>В проекте открой SQL Editor, вставь и выполни этот код:</li></ol>'+
+    '<textarea readonly rows="9" style="width:100%;margin-bottom:6px;">'+SQL+'</textarea>'+
+    '<button id="copy-sql" style="font-size:12px;padding:4px 10px;margin-bottom:14px;">Скопировать SQL</button>'+
+    '<ol start="3" style="font-size:13px;color:var(--text-secondary);padding-left:20px;margin:0 0 12px;line-height:1.8;">'+
+    '<li>Открой Project Settings &rarr; Data API и скопируй Project URL и ключ anon:</li></ol>'+
+    '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">'+
+    '<input id="su-url" placeholder="https://xxxx.supabase.co" value="'+esc(u)+'">'+
+    '<input id="su-key" placeholder="ключ anon eyJ..." value="'+esc(k)+'"></div>'+
+    '<div id="su-err" style="font-size:13px;color:var(--text-danger);margin-bottom:10px;"></div>'+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
+    '<button id="su-connect">Подключить</button>'+
+    '<button id="su-local">Работать без облака</button>'+
+    (cloudOn()?'<button id="su-off">Отключить облако</button>':'')+
+    '</div></div>';
+  document.getElementById('copy-sql').addEventListener('click',()=>navigator.clipboard.writeText(SQL));
+  document.getElementById('su-connect').addEventListener('click',async()=>{
+    const url=gv('su-url').trim().replace(/\/+$/,'').replace(/\/rest\/v1$/,'').replace(/\/+$/,'');
+    const key=gv('su-key').trim();
+    const err=document.getElementById('su-err');
+    if(!url||!key){err.textContent='Заполни оба поля.';return;}
+    err.style.color='var(--text-muted)';err.textContent='Проверяю подключение…';
+    try{
+      const r=await fetch(url+'/rest/v1/tracker_state?select=id&limit=1',{headers:{'apikey':key,'Authorization':'Bearer '+key}});
+      if(!r.ok)throw new Error('HTTP '+r.status+(r.status===404?' — таблица не создана?':(r.status===401||r.status===403)?' — неверный ключ.':''));
+      cfg={url,key};saveCfg();view.screen='list';await syncOnStart();
+    }catch(e){err.style.color='var(--text-danger)';err.textContent='Не получилось: '+e.message;}
+  });
+  document.getElementById('su-local').addEventListener('click',()=>{cfg=cfg&&cfg.url?cfg:{local:true};if(!cfg.url)saveCfg();view.screen='list';render();});
+  const off=document.getElementById('su-off');
+  if(off) off.addEventListener('click',()=>{cfg={local:true};saveCfg();syncSt={status:'local',ts:null,msg:''};view.screen='list';render();});
+}
+
+// ─── Рендер ───────────────────────────────────────────────────────────────
+function render(){
+  document.getElementById('subtitle').textContent='Сейчас '+W(curW)+' · '+today.toLocaleDateString('ru-RU')+(cloudOn()?' · синхронизация через Supabase':' · данные в этом браузере');
+  updateChip();
+  if(view.screen==='setup'){renderSetup();return;}
+  view.screen==='list'?renderList():renderDetail();
+  saveLocal();
+}
+
+// ─── Глобальные кнопки ────────────────────────────────────────────────────
+document.getElementById('sync-chip').addEventListener('click',async()=>{
+  if(!cloudOn()){view.screen='setup';render();return;}
+  try{const remote=await pullRemote();if(remote){vacs=remote.vacs;seq=remote.seq||10;}syncSt={status:'ok',ts:new Date(),msg:''};}
+  catch(e){syncSt={status:'err',ts:null,msg:e.message};}
+  saveLocal();render();
 });
-function saveVacancy() {
-  const name = document.getElementById('f-name').value.trim();
-  if (!name) { document.getElementById('f-name').focus(); return; }
-  const grade = +document.getElementById('f-grade').value;
-  const sm = +document.getElementById('f-sm').value || GRADE_META[grade].sm;
-  const sc = +document.getElementById('f-sc').value || GRADE_META[grade].sc;
-  const ss = +document.getElementById('f-ss').value || GRADE_META[grade].ss;
-  vacancies.push({ name, grade, sm, sc, ss });
-  saveVacancies(); closeModal(); render();
-}
+document.getElementById('btn-cloud').addEventListener('click',()=>{view.screen='setup';render();});
+document.getElementById('btn-export').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify({vacs,seq},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='vacancy-tracker-'+todayISO+'.json';a.click();URL.revokeObjectURL(a.href);
+});
+document.getElementById('btn-import').addEventListener('click',()=>document.getElementById('file-import').click());
+document.getElementById('file-import').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const d=JSON.parse(rd.result);
+      if(d&&Array.isArray(d.vacs)){vacs=d.vacs;seq=d.seq||10;view={screen:'list',vacId:null,week:curW,showAdd:false,draft:null,entryDate:null};save();render();}
+      else alert('Файл не похож на экспорт трекера.');
+    }catch(err){alert('Не удалось прочитать файл: '+err.message);}
+  };
+  rd.readAsText(f);e.target.value='';
+});
+
+loadCfg();
+loadLocal();
+if(!cfg) view.screen='setup';
 render();
+if(cloudOn()) syncOnStart();
 </script>
 </body>
 </html>
