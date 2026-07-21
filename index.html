@@ -6,16 +6,16 @@
 <title>Трекер вакансий</title>
 <style>
 :root{
-  --surface-0:#FAF9F5; --surface-1:#F1EFE8; --surface-2:#ffffff;
-  --text-primary:#1f1e1b; --text-secondary:#5F5E5A; --text-muted:#8a8983;
-  --border:#E3E1D9; --border-strong:#c9c7bf; --border-stronger:#8a8983;
-  --bg-accent:#E6F1FB; --text-accent:#185FA5;
-  --bg-success:#EAF3DE; --text-success:#3B6D11;
-  --bg-good:#DFF0F8;    --text-good:#1A6E8E;
-  --bg-warning:#FAEEDA; --text-warning:#854F0B;
-  --bg-risk:#FDEBD4;    --text-risk:#9B4A00;
-  --bg-danger:#FCEBEB;  --text-danger:#A32D2D;
-  --bg-idle:#EFEFED;    --text-idle:#5F5E5A;
+  --surface-0:#191919; --surface-1:#252525; --surface-2:#2f2f2f;
+  --text-primary:#e3e3e3; --text-secondary:#9b9a97; --text-muted:#787774;
+  --border:#373737; --border-strong:#4a4a4a; --border-stronger:#636360;
+  --bg-accent:#1d3552;  --text-accent:#52a8d8;
+  --bg-success:#192e14; --text-success:#57b02e;
+  --bg-good:#112236;    --text-good:#3dadd4;
+  --bg-warning:#2d1f0f; --text-warning:#d4913a;
+  --bg-risk:#2a1508;    --text-risk:#d4763a;
+  --bg-danger:#2d1515;  --text-danger:#d45555;
+  --bg-idle:#252525;    --text-idle:#787774;
   --radius:8px;
 }
 *{box-sizing:border-box}
@@ -29,7 +29,11 @@ button{background:transparent; border:1px solid var(--border-strong); border-rad
 button:hover{background:var(--surface-1);}
 button:active{transform:scale(0.98);}
 input,select,textarea{border:1px solid var(--border-strong); border-radius:var(--radius); padding:6px 10px;
-  font-size:14px; font-family:inherit; background:#fff; color:var(--text-primary); height:36px;}
+  font-size:14px; font-family:inherit; background:var(--surface-1); color:var(--text-primary); height:36px;}
+input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7);}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:var(--surface-0);}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:4px;}
 textarea{height:auto; font-family:ui-monospace,Consolas,monospace; font-size:12px;}
 input:focus,select:focus,textarea:focus,button:focus-visible{
   outline:none; box-shadow:0 0 0 2px var(--bg-accent), 0 0 0 3px var(--text-accent);}
